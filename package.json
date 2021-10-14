@@ -1,0 +1,32 @@
+{
+  "name": "@d3x0r/socket-service",
+  "version": "1.0.0",
+  "description": "Service that can be used to handle fetch() over websockets (and manage websockets).",
+  "main": "sws.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d3x0r/socket-service.git"
+  },
+  "keywords": [
+    "websocket",
+    "fetch",
+    "proxy"
+  ],
+  "dependencies": {
+    "sack.vfs": "latest"
+  },
+  "devDependencies": {
+    "@d3x0r/srg": "^1.2.0",
+    "jsox": "latest"
+  },
+  "author": "d3x0r",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/d3x0r/socket-service/issues"
+  },
+  "homepage": "https://github.com/d3x0r/socket-service#readme"
+}
