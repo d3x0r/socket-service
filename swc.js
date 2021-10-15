@@ -30,6 +30,7 @@ const l = {
 	worker : null,
 	connect:false,
 	connects:[],
+	logins:[],
 	opens:[],
 	sockets :new Map(),
 
@@ -151,6 +152,8 @@ function makeSocket( sockid, from ) {
 						console.log( "Pending is:", pending );
 						pending.cb( this );
 						socket.handleMessage = pending.cb;
+						l.logins.push( pending );
+						//pending.res( this );
 
 					} );
 		                
@@ -249,17 +252,19 @@ function handleMessage( event ) {
 }
 
 function connect( address, protocol, cb, onMsg ) {
+	return new Promise( (res,rej)=>{
 	console.log( "Connect:", l.worker );
 	if( !l.worker )  {
 		// queue for when the worker really exists.
-		l.connects.push( { cb: cb, onMsg:onMsg, msg: {op:"connect", protocol:protocol, address:address } } );
+		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg: {op:"connect", protocol:protocol, address:address } } );
 		console.log( "pushed connection to pending connect..." );
 	} else {
 		console.log( "able to go now..." );
 		l.worker.postMessage( {op:"connect", protocol:protocol, address:address } ); 	
-		l.connects.push( { cb: cb, onMsg:onMsg, msg:null } );
+		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg:null } );
 	}
 	console.log( "Connect called...", l.connects );
+	} )
 }
 
 
