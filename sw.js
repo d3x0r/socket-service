@@ -17,14 +17,14 @@ self.addEventListener( "message", handleMessage );
 
 
 function activation( event ) {
-    	console.log( "ACTIVATION EVENT:", event );
-        console.log( "Outstanding clients:", l_sw.clients );
+    	//console.log( "ACTIVATION EVENT:", event );
+        //console.log( "Outstanding clients:", l_sw.clients );
         clients.claim();
     }
 
 function installation( event ) {
-    	console.log( "INSTALLATION EVENT:", event );
-        console.log( "Outstanding clients:", l_sw.clients );
+    	//console.log( "INSTALLATION EVENT:", event );
+        //console.log( "Outstanding clients:", l_sw.clients );
     }
 
 function resourceReply( client, msg ) {
@@ -202,7 +202,7 @@ function handleFetch( event ) {
 
 function handleMessage( event ) {
 	const msg = event.data;
-        console.log("HAndle message: (to get client)", msg );
+        //console.log("HAndle message: (to get client)", msg );
         const client = getMessageClient( event ); // captures event.source for later response
 
 	if( msg.op === "Hello" ) {
