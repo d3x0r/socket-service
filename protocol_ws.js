@@ -47,6 +47,7 @@ function makeProtocol( client ) {
 		}else if( msg.op === "send" ) {
 			const socket = connections.get( msg.id );
 			if( socket ) socket.ws.send( msg.msg );
+			else send( {op:"disconnect", id:msg.id } );
 			//else throw new Error( "Socket to send to is closed:"+msg.id );
 		}else if( msg.op === "close" ) {
 			const socket = connections.get( msg.id );
