@@ -4,7 +4,7 @@ const _debug = false;
 
 // build script requires this sort of path...
 import {JSOX} from "../../jsox/lib/jsox.mjs"
-import {SaltyRNG} from "../srg/salty_random_generator.js"
+import {SaltyRNG} from "../srg2/salty_random_generator2.mjs"
 
 const generator = SaltyRNG.id;
 const regenerator = SaltyRNG.id;

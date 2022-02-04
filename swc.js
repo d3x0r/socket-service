@@ -1,4 +1,4 @@
-import {SaltyRNG} from "/node_modules/@d3x0r/srg/salty_random_generator.js"
+import {SaltyRNG} from "/node_modules/@d3x0r/srg2/salty_random_generator2.mjs"
 const regenerator = SaltyRNG.id;
 const generator = SaltyRNG.id;
 const short_generator = SaltyRNG.id;

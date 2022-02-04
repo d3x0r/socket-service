@@ -1,6 +1,6 @@
 {
   "name": "@d3x0r/socket-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Service that can be used to handle fetch() over websockets (and manage websockets).",
   "main": "sws.js",
   "type": "module",
@@ -20,7 +20,7 @@
     "sack.vfs": "latest"
   },
   "devDependencies": {
-    "@d3x0r/srg": "^1.2.0",
+    "@d3x0r/srg2": "^1.0.0",
     "jsox": "latest"
   },
   "author": "d3x0r",
