@@ -28,7 +28,6 @@ const l = {
 	requestSocket : null,
 	reg : null,
 	worker : null,
-	connect:false,
 	connects:[],
 	logins:[],
 	opens:[],
@@ -58,49 +57,44 @@ const localStorage_ = {
 
 function initWorker() {
 
-navigator.serviceWorker.register('/socket-service-swbundle.js', { scope: '/' }).then(function(registration) {
-      // Registration was successful
-      //console.log('ServiceWorker registration successful with scope: ', registration.scope, registration);
-	l.reg = registration;
-	//console.log( "got registration", registration );
-	// poll for ready...
+	navigator.serviceWorker.register('/socket-service-swbundle.js', { scope: '/' }).then(function(registration) {
+		// Registration was successful
+		//console.log('ServiceWorker registration successful with scope: ', registration.scope, registration);
+		l.reg = registration;
+		//console.log( "got registration", registration );
+		// poll for ready...
+		tick();
+        }, function(err) {
+		// registration failed :(
+		console.log('ServiceWorker registration failed: ', err);
+	});
+
 	function tick() {
-		console.log( "tick waiting for service...", l.worker );
+		//console.log( "tick waiting for service...", l.worker );
             	if( !l.worker ) {
 			l.worker = l.reg.active;
 			if( l.worker ) {
-				console.log( "Sending hello." );
+				//console.log( "Sending hello." );
 				l.worker.postMessage( {op:"Hello" } );                	
+				if( l.connects.length ) 
+					for( let msg of l.connects ) {
+						l.worker.postMessage( msg.msg );
+					}
 			} else {
-				setTimeout( tick, 100 );
+				//setTimeout( tick, 100 );
 			}
                 }
-		if( l.worker && l.connects.length ) 
-			for( let msg of l.connects ) 
-				l.worker.postMessage( msg.msg );
+
+
 	}
-	tick();
-    }, function(err) {
-      // registration failed :(
-      console.log('ServiceWorker registration failed: ', err);
-    });
 
-navigator.serviceWorker.ready.then( registration => {
-	//console.log( "THIS IS READY?" );
-	l.reg = registration;
-        if( !l.worker ) {
-		l.worker = l.reg.active;
-		//console.log( "got registration ready", registration );
-		if( l.worker )
-			l.worker.postMessage( {op:"Hello" } );
-		if( l.connect ) {
-			console.log( "!! This connect is redundant??" );
-			//l.worker.postMessage( {op:"connect" } );
-		}
-        }
-  });
+	navigator.serviceWorker.ready.then( registration => {
+		//console.log( "THIS IS READY?" );
+		l.reg = registration;
+		tick();
+	});
 
-navigator.serviceWorker.addEventListener( "message", handleMessage );
+	navigator.serviceWorker.addEventListener( "message", handleMessage );
 
 }
 
@@ -252,18 +246,15 @@ function handleMessage( event ) {
 }
 
 function connect( address, protocol, cb, onMsg ) {
+	console.trace( "DO CONNECT:", address );
 	return new Promise( (res,rej)=>{
-	console.log( "Connect:", l.worker );
-	if( !l.worker )  {
-		// queue for when the worker really exists.
-		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg: {op:"connect", protocol:protocol, address:address } } );
-		console.log( "pushed connection to pending connect..." );
-	} else {
-		console.log( "able to go now..." );
-		l.worker.postMessage( {op:"connect", protocol:protocol, address:address } ); 	
-		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg:null } );
-	}
-	console.log( "Connect called...", l.connects );
+		let msg = {op:"connect", protocol:protocol, address:address }
+		if( l.worker ) {
+			console.log( "sending message now, and clearing" );
+			l.worker.postMessage( msg ); 	
+			msg = null;
+		}
+		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg } );
 	} )
 }
 
