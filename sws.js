@@ -5,7 +5,7 @@ const disk = sack.Volume();
 
 
 export function handleRequest( req, res ) {
-       	const contentType = 'text/javascript';
+	const contentType = 'text/javascript';
 	let filePath = req.url;
 	// redirect this file's source so it can serve root content.
 	if( req.url === '/socket-service-swbundle.js' ) filePath = 'node_modules/@d3x0r/socket-service/swbundle.js'
@@ -28,7 +28,7 @@ export function handleRequest( req, res ) {
 		res.writeHead(200, { 'Content-Type': contentType });
 		//console.log( "Read:", "." + req.url );
 		res.end( disk.read( filePath ) );
-                return true;
+		return true;
 	}
-        return false;
+	return false;
 }
