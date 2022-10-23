@@ -4,10 +4,11 @@ import {sack} from "sack.vfs" ;
 const disk = sack.Volume();
 
 
-export function handleRequest( req, res ) {
+export function handleRequest( req, res, serverOpts ) {
 	const contentType = 'text/javascript';
 	let filePath = req.url;
 	// redirect this file's source so it can serve root content.
+	//console.log( "socket-service got a turn at:", req.url );
 	if( req.url === '/socket-service-swbundle.js' ) filePath = 'node_modules/@d3x0r/socket-service/swbundle.js'
 	else if( req.url === '/socket-service-client.js' ) filePath = 'node_modules/@d3x0r/socket-service/swc.js'
 /*
@@ -23,7 +24,9 @@ export function handleRequest( req, res ) {
 	}
 */
 	else return false;
-
+	const prePath = (serverOpts.npmPath || "." ) + "/";
+	filePath = prePath + filePath;
+	//console.log( 'filePath? did we get serverOpts?', this, filePath );
 	if( disk.exists( filePath ) ) {
 		res.writeHead(200, { 'Content-Type': contentType });
 		//console.log( "Read:", "." + req.url );

@@ -1,3 +1,14 @@
+// THis is the main service worker service.
+//   This handles websocket connections, and hooks into fetch() requests
+//   Fetches might be satisified by the websocket, instead of requested over http.
+//   This allows a single websocket service connection to serve interface elements also;
+//    this can be dynamic images, or static content which is not publically available on a CDN.
+//    This can be proprietary software; this can wrap code around websockets also; such as a 
+//    transparent socket.IO layer sort of hook.
+//
+//     Specific forms and UI elmeents might hook themselves here also; but really any HTML element.
+//
+//   This is built with rollup. `npm run build`
 
 const l_sw = {
 	rid : 0,
