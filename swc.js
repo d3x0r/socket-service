@@ -30,7 +30,6 @@ const l = {
 	worker: null,
 	connects: [],
 	logins: [],
-	opens: [],
 	sockets: new Map(),
 
 };
@@ -43,28 +42,11 @@ const config = {
 	}
 };
 
-
-const localStorage_ = {
-	setItem(item, val) {
-		localStorage.setItem(item, val);
-		config.run[item] = val;
-	},
-	getItem(item) {
-		return localStorage.getItem(item);
-	},
-	removeItem(item) {
-		config.run[item] = null;
-		localStorage.removeItem(item);
-	}
-}
-
 function initWorker() {
 
 	navigator.serviceWorker.register('/socket-service-swbundle.js', { scope: '/' }).then(function (registration) {
 		// Registration was successful
-		//console.log('ServiceWorker registration successful with scope: ', registration.scope, registration);
 		l.reg = registration;
-		//console.log( "got registration", registration );
 		// poll for ready...
 		tick();
 	}, function (err) {
@@ -73,7 +55,6 @@ function initWorker() {
 	});
 
 	function tick() {
-		//console.log( "tick waiting for service...", l.worker );
 		if (!l.worker) {
 			l.worker = l.reg.active;
 			if (l.worker) {
@@ -87,8 +68,6 @@ function initWorker() {
 				//setTimeout( tick, 100 );
 			}
 		}
-
-
 	}
 
 	navigator.serviceWorker.ready.then(registration => {
@@ -109,24 +88,29 @@ function makeSocket(sockid, from) {
 			workerInterface.setUiLoader(socket);
 		},
 		from: from, // track redirect for reconnect?
-		close() {
+		close(code,reason) {
 			console.log("CLose socket from client side...");
-			l.worker.postMessage({ op: "close", is: socket.socket });
+			l.worker.postMessage({ op: "close", is: socket.socket, code, reason });
 		},
 		cb: null,
 		events_: [],
-		newSocket(addr) {
-			return new Promise((res, rej) => {
-				l.opens.push(res);
-				l.worker.postMessage(addr);
-			});
-		},
-		on(event, cb) {
+		on(event, cb, ...more) {
 			if ("function" !== typeof cb) {
-				if (event in this.events_)
-					this.events_[event](cb);
+				if (event in this.events_) {
+					const r = this.events_[event].reduce( ((acc,val)=>{
+						const a = val(cb,...more)
+						if( a ) if( acc ) {
+							if( acc instanceof Array ) {
+								acc.push( a );
+								return acc;
+							}else return [acc,a];
+						} else return a;
+					}), null );
+					return r;
+				}
 			} else {
-				this.events_[event] = cb;
+				if( event in this.events_ ) this.events_[event].push(cb);
+				else this.events_[event] = [cb];
 			}
 		},
 		send(a) {
@@ -147,9 +131,11 @@ function makeSocket(sockid, from) {
 						//socket.on("connect", socket );
 						const pending = l.connects.shift();
 						console.log("Pending is:", pending);
-						pending.cb(this);
+						pending.res( socket )
+
 						socket.handleMessage = pending.cb;
-						l.logins.push(pending);
+						//l.logins.push(pending);
+
 						//pending.res( this );
 
 					});
@@ -163,14 +149,16 @@ function makeSocket(sockid, from) {
 				}
 
 			} else if (msg.op === "status") {
-				if (socket.cb)
-					socket.cb(msg.status);
-				else
-					console.log("Socket doesn't have a event cb? Status:", msg.status);
+				console.log("Socket doesn't have a event cb? Status:", msg.status);
 			} else if (msg.op === "disconnect") {
 				const socket = l.sockets.get(msg.id);
-				l.sockets.delete(msg.id);
-				socket.on("disconnect");
+				if( socket ) {
+					l.sockets.delete(msg.id);
+					console.log( "THIS IS A DISCONNECT FAILURE MESSAGE");
+					socket.on("disconnect");
+				}else {
+					console.log( "Trying to do ano operation against a closed socket..." );
+				}
 			} else {
 				if (socket.fw_message)
 					if (socket.fw_message(socket, msg)) return;
@@ -182,7 +170,6 @@ function makeSocket(sockid, from) {
 					return;
 				}
 
-				//socket.cb( msg );
 				console.log("Recevied unknown network event:", msg);
 			}
 		}
@@ -203,45 +190,25 @@ function handleMessage(event) {
 	} else if (msg.op === "b") {
 		const sock = l.sockets.get(msg.id);
 		if (sock) {
-			//console.log( "socket state change message:", msg.msg );
-			//sock.handleMessage( msg.msg );
-			//console.log( "worker Event", msg );
 			const imsg = msg.msg;
-			if (imsg.op === "status") {
-				if (sock.cb)
-					sock.cb(imsg.status);
-				else
-					console.log("Socket doesn't have a event cb? Status:", imsg.status);
-			} else if (imsg.op === "opening") {
-				// gets sockets UID
-				sock.cb(true, sock);
-				//console.log( "onopen event?" );
-			} else if (imsg.op === "disconnect") {
+			if (imsg.op === "disconnect") {				
 				l.sockets.delete(imsg.id);
-				//sock.on("disconnect");
+				sock.on("close", imsg.code, imsg.reason );
 			}
 		}
 	} else {
-		//console.log( "worker Event", msg );
 		if (msg.op === "connecting") {
-			let connect;
-			if (l.opens.length) {
-				const sock = makeSocket(msg.id);
-				l.sockets.set(msg.id, sock);
-				return l.opens.shift()(sock);
-			} else if (l.connects.length) {
-				connect = l.connects.shift();
-			}
+			let connect = l.connects.shift();
 			const sock = makeSocket(msg.id, msg.from);
-			if (connect) {
-				sock.handleMessage = connect.onMsg;
-				sock.cb = connect.cb
-			}
+			sock.handleMessage = (msg)=>connect.onMsg(sock,msg);
+			connect.res( sock );
 			l.sockets.set(msg.id, sock);
 		} else if (msg.op === "get") {
 			l.worker.postMessage(msg);
 		} else if (msg.op === "disconnect") {
 			const sock = l.sockets.get(msg.id);
+			console.log( "this is a normal close message" );
+			sock.on( "close", msg.code, msg.reason );
 			sock.handleMessage(msg);
 		} else {
 			console.log("Unhandled Message:", msg);
@@ -249,7 +216,7 @@ function handleMessage(event) {
 	}
 }
 
-function connect(address, protocol, cb, onMsg) {
+function connect(address, protocol, onMsg) {
 	//console.trace( "DO CONNECT:", address );
 	return new Promise((res, rej) => {
 		let msg = { op: "connect", protocol: protocol, address: address }
@@ -258,7 +225,7 @@ function connect(address, protocol, cb, onMsg) {
 			l.worker.postMessage(msg);
 			msg = null;
 		}
-		l.connects.push({ cb: cb, res: res, rej: rej, onMsg: onMsg, msg });
+		l.connects.push({ res: res, rej: rej, onMsg: onMsg, msg });
 	})
 }
 
