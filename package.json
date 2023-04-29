@@ -19,7 +19,7 @@
     "proxy"
   ],
   "dependencies": {
-    "sack.vfs": "latest",
+    "sack.vfs": "https://github.com/d3x0r/sack.vfs",
 	 "rollup": "latest"
   },
   "devDependencies": {
