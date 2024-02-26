@@ -98,92 +98,102 @@ function initWorker() {
 
 }
 
-function makeSocket( sockid, from ) {
-	console.log( "making a socket.." );
-	const socket = {
-		socket:sockid,
-		setUiLoader() {
-			workerInterface.setUiLoader( socket );
-		},
-		from:from, // track redirect for reconnect?
-		close() {
-			console.log( "CLose socket from client side..." );
-			l.worker.postMessage( {op:"close", is:socket.socket } );
-		},
-		cb : null,
-                events_ : [],
-		newSocket(addr) {
-			return new Promise( (res,rej)=>{
-				l.opens.push( res );				
-				l.worker.postMessage( addr );
-			} );
-		},
-                on(event,cb ) {
-			if( "function" !== typeof cb ) {
-                        	if( event in this.events_ )
-					this.events_[event](cb);
-			} else {
-				this.events_[event] = cb;
-			}
-		},
-		send(a) {
-			//console.log( "Send something?",a );
-			l.worker.postMessage( {op:"send", id:socket.socket, msg:a } );
-		},
-		handleMessage : null,
-		handleMessageInternal(msg ) {
-			if( "string" === typeof msg ) {
-				msg = JSOX.parse( msg ) ;
-			}
-			console.log( "this message", typeof msg, msg.op, msg ) ;
-			if( msg.op === "addMethod" ) {
-                                try {
-					const f = new AsyncFunction( "JSON", "config", "idGen", "Import", msg.code );
-					f.call( socket, JSOX, config, idGen, (n)=>import(n) ).then( ()=>{
-						console.log( "completed..." );
-						//socket.on("connect", socket );
-						const pending = l.connects.shift();
-						console.log( "Pending is:", pending );
-						pending.cb( this );
-						socket.handleMessage = pending.cb;
-						l.logins.push( pending );
-						//pending.res( this );
+class WebSocket {
 
-					} );
-		                
-					if( "setEventCallback" in socket )
-						socket.setEventCallback( socket.on.bind( socket, "event" ) );
-					
-					//socket.on( "connect", socket );
-				} catch( err ) {
-					console.log( "Function compilation error:", err,"\n", msg.code );
-				}		
-				
-			} else if( msg.op === "status" ) {
-				if( socket.cb )
-				    socket.cb( msg.status );
-				else
-                                    console.log( "Socket doesn't have a event cb? Status:", msg.status );
-			} else if( msg.op === "disconnect" ) {
-	                        const socket = l.sockets.get( msg.id );
-        	                l.sockets.delete( msg.id );
-                	        socket.on("disconnect");
-			} else {
-				if( socket.fw_message )
-					if( socket.fw_message( socket, msg ) ) return;
-				if( msg.op === "get" ) {
-					console.log( "No service handler for get... passing back to default handler." );
-					if( workerInterface.uiSocket )
-						workerInterface.uiSocket.send( msg );
-					//l.worker.postMessage( msg );
-					return;
-				}
+	socket = null;
+	from= null; // track redirect for reconnect?
+	cb = null;
+	handleMessage = null;
+	events_ = [];
 
-				//socket.cb( msg );
-				console.log( "Recevied unknown network event:", msg );
-			}
+	constructor( sockid, from ) {
+		this.socket = from;
+		this.socket = sockid;
+	}
+	setUiLoader() {
+		workerInterface.setUiLoader( socket );
+	}
+	close() {
+		console.log( "CLose socket from client side..." );
+		l.worker.postMessage( {op:"close", is:this.socket } );
+	}
+	newSocket(addr) {
+		return new Promise( (res,rej)=>{
+			l.opens.push( res );				
+			l.worker.postMessage( addr );
+		} );
+	}
+	on(event,cb ) {
+		if( "function" !== typeof cb ) {
+                     	if( event in this.events_ )
+				this.events_[event](cb);
+		} else {
+			this.events_[event] = cb;
 		}
-	};
+	}
+	send(a) {
+		//console.log( "Send something?",a );
+		l.worker.postMessage( {op:"send", id:this.socket, msg:a } );
+	}
+	handleMessageInternal(msg ) {
+		if( "string" === typeof msg ) {
+			msg = JSOX.parse( msg ) ;
+		}
+		console.log( "this message", typeof msg, msg.op, msg ) ;
+		if( msg.op === "addMethod" ) {
+                             try {
+				const f = new AsyncFunction( "JSON", "config", "idGen", "Import", msg.code );
+				f.call( socket, JSOX, config, idGen, (n)=>import(n) ).then( ()=>{
+					console.log( "completed..." );
+					//this.on("connect", socket );
+					const pending = l.connects.shift();
+					console.log( "Pending is:", pending );
+					pending.cb( this );
+					this.handleStatus = pending.cb;
+					this.handleMessage = pending.onMsg;
+					l.logins.push( pending );
+					//pending.res( this );
+
+				} );
+	                
+				if( "setEventCallback" in socket )
+					this.setEventCallback( this.on.bind( socket, "event" ) );
+				
+				//this.on( "connect", socket );
+			} catch( err ) {
+				console.log( "Function compilation error:", err,"\n", msg.code );
+			}		
+			
+		} else if( msg.op === "status" ) {
+			if( this.cb )
+			    this.cb( msg.status );
+			else
+                                 console.log( "Socket doesn't have a event cb? Status:", msg.status );
+		} else if( msg.op === "disconnect" ) {
+                        const socket = l.sockets.get( msg.id );
+     	                l.sockets.delete( msg.id );
+             	        this.on("disconnect");
+		} else {
+			if( this.fw_message )
+				if( this.fw_message( socket, msg ) ) return;
+			if( msg.op === "get" ) {
+				console.log( "No service handler for get... passing back to default handler." );
+				if( workerInterface.uiSocket )
+					workerInterface.uithis.send( msg );
+				//l.worker.postMessage( msg );
+				return;
+			}
+
+			//this.cb( msg );
+			console.log( "Received unknown network event:", msg );
+		}
+	}
+
+}
+
+function makeSocket( sockid, from ) {
+	//console.log( "making a socket.." );
+	const socket = new WebSocket( sockid, from );
 
 	return socket;
 }
@@ -191,27 +201,29 @@ function makeSocket( sockid, from ) {
 
 function handleMessage( event ) {
 	const msg = event.data;
-        console.log( "msg:", msg );
+	//console.log( "socket-service client msg:", msg );
 	if( msg.op === "a" ) {		
 		const sock = l.sockets.get( msg.id );
 		if( sock ) {
-			sock.handleMessage( msg.msg );
+			sock.handleMessage( sock, msg.msg );
 		}
 	} else if( msg.op === "b" ) {		
 		const sock = l.sockets.get( msg.id );
 		if( sock ) {
-			console.log( "socket state change message:", msg.msg );
-			//sock.handleMessage( msg.msg );
-			//console.log( "worker Event", msg );
+			//console.log( "socket state change message:", msg.msg );
 			const imsg = msg.msg;
 			if( imsg.op === "status" ) {
 				if( sock.cb )
-				    sock.cb( imsg.status );
+					sock.cb( imsg.status );
 				else
-                                    console.log( "Socket doesn't have a event cb? Status:", imsg.status );
+					console.log( "Socket doesn't have a event cb? Status:", imsg.status );
 			} else if( imsg.op === "opening" ) {
-				sock.cb( true, sock );
-				console.log( "onopen event?" );
+				sock.cb( "Opening..." );
+				//console.log( "onopen event?" );
+			} else if( imsg.op === "open" ) {
+				sock.cb( "Open" );
+				sock.on( "open" );
+				//console.log( "onopen event?" );
 			} else if( imsg.op === "disconnect" ) {
 				l.sockets.delete( imsg.id );
 				sock.on("disconnect");
@@ -236,9 +248,9 @@ function handleMessage( event ) {
 			l.sockets.set( msg.id, sock );
 		} else if( msg.op === "get" ) {
 			l.worker.postMessage( msg );
- 	       } else if( msg.op === "disconnect" ) {
-                    const sock = l.sockets.get(msg.id );
-                    	sock.handleMessage( msg );
+		} else if( msg.op === "disconnect" ) {
+			const sock = l.sockets.get(msg.id );
+			sock.handleMessage( msg );
 		} else {
 			console.log( "Unhandled Message:", msg );
 		}
@@ -246,7 +258,7 @@ function handleMessage( event ) {
 }
 
 function connect( address, protocol, cb, onMsg ) {
-	console.trace( "DO CONNECT:", address );
+	//console.trace( "DO CONNECT:", address );
 	return new Promise( (res,rej)=>{
 		let msg = {op:"connect", protocol:protocol, address:address }
 		if( l.worker ) {
