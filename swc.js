@@ -1,100 +1,83 @@
-import {SaltyRNG} from "/node_modules/@d3x0r/srg2/salty_random_generator2.mjs"
+import { SaltyRNG } from "/node_modules/@d3x0r/srg2/salty_random_generator2.mjs"
 const regenerator = SaltyRNG.id;
 const generator = SaltyRNG.id;
 const short_generator = SaltyRNG.id;
 
-import {JSOX} from "/node_modules/jsox/lib/jsox.mjs"
+import { JSOX } from "/node_modules/jsox/lib/jsox.mjs"
 
-const idGen = { generator:generator,regenerator:regenerator }
-const AsyncFunction = Object.getPrototypeOf( async function() {} ).constructor;
+const idGen = { generator: generator, regenerator: regenerator }
+const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
 
 const workerInterface = {
 	connect: connect,
-	uiSocket:null,
+	uiSocket: null,
 	setUiLoader(protocol) {
-		workerInterface.uiSocket = protocol;                    
-		l.worker.postMessage( {op:"setUiLoader", socket:protocol.socket} );
+		workerInterface.uiSocket = protocol;
+		l.worker.postMessage({ op: "setUiLoader", socket: protocol.socket });
 	},
 	expect(url) {
-            	// notify worker that another page will be
-            	// loaded soon, and that this client socket is also
-            	// used for that.
-		l.worker.postMessage( {op:"expect", url:url } );
+		// notify worker that another page will be
+		// loaded soon, and that this client socket is also
+		// used for that.
+		l.worker.postMessage({ op: "expect", url: url });
 	},
-        initWorker: initWorker
+	initWorker: initWorker
 }
 
 const l = {
-	requestSocket : null,
-	reg : null,
-	worker : null,
-	connects:[],
-	logins:[],
-	opens:[],
-	sockets :new Map(),
+	requestSocket: null,
+	reg: null,
+	worker: null,
+	connects: [],
+	logins: [],
+	opens: [],
+	sockets: new Map(),
 
 };
 
-const config = {run:{ devkey:localStorage.getItem( "devkey" ),
-		clientKey : localStorage.getItem( "clientKey" ),
-		sessionKey : localStorage.getItem( "sessionKey" )
-} };
-
-
-const localStorage_ = {
-	setItem(item,val) {
-		localStorage.setItem( item, val );
-		config.run[item] = val;
-	},
-	getItem(item) {
-		return localStorage.getItem( item );
-	},
-	removeItem(item) {
-		config.run[item] = null;
-		localStorage.removeItem(item);
+const config = {
+	run: {
+		devkey: localStorage.getItem("devkey"),
+		clientKey: localStorage.getItem("clientKey"),
+		sessionKey: localStorage.getItem("sessionKey")
 	}
-}
+};
 
 function initWorker() {
 
-	navigator.serviceWorker.register('/socket-service-swbundle.js', { scope: '/' }).then(function(registration) {
+	navigator.serviceWorker.register('/socket-service-swbundle.js', { scope: '/' }).then(function (registration) {
 		// Registration was successful
-		//console.log('ServiceWorker registration successful with scope: ', registration.scope, registration);
 		l.reg = registration;
-		//console.log( "got registration", registration );
 		// poll for ready...
 		tick();
-        }, function(err) {
+	}, function (err) {
 		// registration failed :(
 		console.log('ServiceWorker registration failed: ', err);
 	});
 
 	function tick() {
-		//console.log( "tick waiting for service...", l.worker );
-            	if( !l.worker ) {
+		if (!l.worker) {
 			l.worker = l.reg.active;
-			if( l.worker ) {
+			if (l.worker) {
 				//console.log( "Sending hello." );
-				l.worker.postMessage( {op:"Hello" } );                	
-				if( l.connects.length ) 
-					for( let msg of l.connects ) {
-						l.worker.postMessage( msg.msg );
+				l.worker.postMessage({ op: "Hello" });
+				if (l.connects.length)
+					for (let msg of l.connects) {
+						l.worker.postMessage(msg.msg);
 					}
 			} else {
 				//setTimeout( tick, 100 );
 			}
-                }
-
-
+		}
 	}
 
-	navigator.serviceWorker.ready.then( registration => {
+	navigator.serviceWorker.ready.then(registration => {
 		//console.log( "THIS IS READY?" );
 		l.reg = registration;
 		tick();
 	});
 
-	navigator.serviceWorker.addEventListener( "message", handleMessage );
+	navigator.serviceWorker.addEventListener("message", handleMessage);
 
 }
 
@@ -199,7 +182,7 @@ function makeSocket( sockid, from ) {
 }
 
 
-function handleMessage( event ) {
+function handleMessage(event) {
 	const msg = event.data;
 	//console.log( "socket-service client msg:", msg );
 	if( msg.op === "a" ) {		
@@ -252,23 +235,24 @@ function handleMessage( event ) {
 			const sock = l.sockets.get(msg.id );
 			sock.handleMessage( msg );
 		} else {
-			console.log( "Unhandled Message:", msg );
+			console.log("Unhandled Message:", msg);
 		}
 	}
 }
 
-function connect( address, protocol, cb, onMsg ) {
+
+function connect(address, protocol, cb, onMsg) {
 	//console.trace( "DO CONNECT:", address );
-	return new Promise( (res,rej)=>{
-		let msg = {op:"connect", protocol:protocol, address:address }
-		if( l.worker ) {
-			console.log( "sending message now, and clearing" );
-			l.worker.postMessage( msg ); 	
+	return new Promise((res, rej) => {
+		let msg = { op: "connect", protocol: protocol, address: address }
+		if (l.worker) {
+			//console.log( "sending message now, and clearing" );
+			l.worker.postMessage(msg);
 			msg = null;
 		}
-		l.connects.push( { cb: cb, res:res, rej:rej, onMsg:onMsg, msg } );
-	} )
+		l.connects.push({ res: res, rej: rej, onMsg: onMsg, cb:cb, msg });
+	})
 }
 
 
-export {workerInterface }
+export { workerInterface }
