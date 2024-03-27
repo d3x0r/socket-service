@@ -19,7 +19,7 @@
     "proxy"
   ],
   "scripts": {
-    "link": "npm link sack.vfs"
+    "link": "npm link sack.vfs jsox @d3x0r/srg2"
   },
   "dependencies": {
     "sack.vfs": "https://github.com/d3x0r/sack.vfs",

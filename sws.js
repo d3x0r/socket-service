@@ -7,10 +7,11 @@ const disk = sack.Volume();
 export function handleRequest( req, res, serverOpts ) {
 	const contentType = 'text/javascript';
 	let filePath = req.url;
+	const npm_path = serverOpts.npmPath || ".";
 	// redirect this file's source so it can serve root content.
 	//console.log( "socket-service got a turn at:", req.url );
-	if( req.url === '/socket-service-swbundle.js' ) filePath = 'node_modules/@d3x0r/socket-service/swbundle.js'
-	else if( req.url === '/socket-service-client.js' ) filePath = 'node_modules/@d3x0r/socket-service/swc.js'
+	if( req.url === '/socket-service-swbundle.js' ) filePath = npm_path+'/node_modules/@d3x0r/socket-service/swbundle.js'
+	else if( req.url === '/socket-service-client.js' ) filePath = npm_path+'/node_modules/@d3x0r/socket-service/swc.js'
 /*
 	else if( req.url === '/login/webSocketClient.js' ) {
 		const file = sack.HTTPS.get( {method:"GET", port:8089, path:"/ui"+req.url, hostname:"d3x0r.org" } );
@@ -24,8 +25,9 @@ export function handleRequest( req, res, serverOpts ) {
 	}
 */
 	else return false;
-	const prePath = (serverOpts.npmPath || "." ) + "/";
-	filePath = prePath + filePath;
+	//console.log( "Url handler for socket service..", filePath );
+	//const prePath = (serverOpts.npmPath || "." ) + "/";
+	//filePath = prePath + filePath;
 	//console.log( 'filePath? did we get serverOpts?', this, filePath );
 	if( disk.exists( filePath ) ) {
 		res.writeHead(200, { 'Content-Type': contentType });
