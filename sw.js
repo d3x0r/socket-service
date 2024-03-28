@@ -208,7 +208,7 @@ function handleMessage(event) {
 		//console.log( "Client is:", client.client.id );
 	} else if (msg.op === "expect") {
 		l_sw.expectations.push({ client: client, url: msg.url });
-	} else if (msg.op === "get") {
+	} else if (msg.op === "got") {
 		// this comes back in from webpage which
 		// actually handled the server's response...
 		if (!client)
@@ -221,11 +221,15 @@ function handleMessage(event) {
 			const req = client.requests[reqId];
 			client.requests.splice(reqId);
 			const headers = new Headers();
-			headers.append('Content-Type', msg.mime);
-			const response = new Response(msg.resource
+			let had_content = 0;
+			for( let header in msg.headers ) {
+				headers.append( header, msg.headers[header] );
+			} 
+			const response = new Response(msg.content
 				, {
 					headers: headers
-					, status: 200, statusText: "Ok"
+					, status:msg.status
+				 , statusText: msg.statusText
 				}
 			);
 			// and finish the promise which replies to the
