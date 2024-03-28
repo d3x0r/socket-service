@@ -230,6 +230,14 @@ function handleMessage(event) {
 			} else if( imsg.op === "open" ) {
 				sock.cb( "Open" );
 				sock.on( "open" );
+				for( let c= 0; c < l.connects.length; c++ ) {
+					const connect = l.connects[c];
+					if( connect.id === imsg.id ) {
+						connect.res( sock );
+						l.connects.splice( c, 1 );
+						c--;// start at this position again
+					}
+				}
 				//console.log( "onopen event?" );
 			} else if( imsg.op === "disconnect" ) {
 				l.sockets.delete( imsg.id );
@@ -245,7 +253,7 @@ function handleMessage(event) {
 				l.sockets.set( msg.id, sock );
 				return l.opens.shift()(sock);
 			} else if( l.connects.length ) {
-				connect = l.connects.shift();
+				connect = l.connects[0];//.find( conn=>conn.id===msg.id );
 			}
 			const sock = makeSocket(msg.id,msg.from );
 			if( connect ) {
