@@ -8,12 +8,18 @@ import { JSOX } from "/node_modules/jsox/lib/jsox.mjs"
 const idGen = { generator: generator, regenerator: regenerator }
 const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
 
+const pendingUI = [];
+
 const workerInterface = {
 	connect: connect,
 	uiSocket: null,
 	setUiLoader(protocol) {
 		workerInterface.uiSocket = protocol;
-		l.worker.postMessage({ op: "setUiLoader", socket: protocol.socket });
+		if( !l.worker ) {
+			pendingUI.push( {protocol} );
+			console.log( "need to pend setting ui loader remote..." );
+		} else
+			l.worker.postMessage({ op: "setUiLoader", socket: protocol.socket });
 	},
 	expect(url) {
 		// notify worker that another page will be
@@ -65,6 +71,7 @@ function initWorker() {
 					for (let msg of l.connects) {
 						l.worker.postMessage(msg.msg);
 					}
+				
 			} else {
 				//setTimeout( tick, 100 );
 			}
@@ -88,13 +95,22 @@ class WebSocket {
 	cb = null;
 	handleMessage = null;
 	events_ = [];
+	uiLoader = false;
 
 	constructor( sockid, from ) {
 		this.socket = from;
 		this.socket = sockid;
 	}
+	set loader( val ) {
+		if( val ) this.setUiLoader();
+		else {
+			this.uiLoader = false;
+			workerInterface.uiSocket = null;
+		}
+	}
 	setUiLoader() {
-		workerInterface.setUiLoader( socket );
+		this.uiLoader = true;
+		workerInterface.setUiLoader( this );
 	}
 	close() {
 		console.log( "CLose socket from client side..." );
@@ -138,7 +154,15 @@ class WebSocket {
 					//pending.res( this );
 
 				} );
-	                
+				for( let s = 0; s < pendingUI.length; s++ )  {
+					const socket = pendingUI[s];
+					if( socket.socket === this.socket ) {
+						l.worker.postMessage({ op: "setUiLoader", socket: socket.socket });
+						pendingUI.splice(s,1);
+						s--;
+					}
+				}
+
 				if( "setEventCallback" in socket )
 					this.setEventCallback( this.on.bind( socket, "event" ) );
 				
