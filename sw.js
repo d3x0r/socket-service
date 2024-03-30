@@ -47,8 +47,8 @@ function resourceReply(client, msg) {
 		const req = client.requests[reqId];
 		clearTimeout(req.timeout);
 		client.requests.splice(reqId, 1);
-		const headers = new Headers({ 'Content-Type': msg.mime });
-		const response = new Response(msg.resource, { status: 200, statusText: "Ok(WS)", headers: headers });
+		const headers = new Headers(msg.response.headers);
+		const response = new Response(msg.response.content, { status: msg.response.status, statusText: msg.response.statusText, headers: headers });
 		//console.log( "Resolve with ressponce" );
 		req.res(response);
 	}
@@ -151,6 +151,11 @@ function handleFetch(event) {
 	}
 
 	const client = getClient(event, asClient);
+	const url = new URL( req.url );
+	// not only the client; but the specific socket on the client....
+	const sock = client.protocol.connections.find( (ws)=>{
+		return ( url.origin === ws.url.origin ) && ws.uiLoader;
+	} );
 
 	event.respondWith(
 		(() => {
@@ -164,7 +169,7 @@ function handleFetch(event) {
 				if (!client) {
 					console.log("fetch event on a page we don't have a socket for...");
 				}
-				if (client && client.uiSocket) {
+				if (client && sock) {
 					const url = req.url;
 					const newEvent = { id: l_sw.rid++, event: event, res: null, rej: null, p: null, timeout: null };
 					client.requests.push(newEvent);
@@ -175,7 +180,7 @@ function handleFetch(event) {
 							console.log("5 second delay elapsed... reject");
 							const response = new Response("Timeout", { status: 408, statusText: "Timeout" });
 							res(response);
-							client.uiSocket = null;
+							//client.uiSocket = null;
 							const reqId = client.requests.findIndex((client) => client.id === newEvent.id);
 							if (reqId >= 0)
 								client.requests.splice(reqId);
@@ -186,7 +191,7 @@ function handleFetch(event) {
 
 					//console.log( "Post event to corect socket...", client.uiSocket );
 
-					client.protocol.send(client.uiSocket
+					client.protocol.send(sock//client.uiSocket
 						, { op: "get", url: url, id: newEvent.id });
 					return p;
 				} else {
@@ -208,14 +213,14 @@ function handleMessage(event) {
 		//console.log( "Client is:", client.client.id );
 	} else if (msg.op === "expect") {
 		l_sw.expectations.push({ client: client, url: msg.url });
-	} else if (msg.op === "got") {
+	} else if (msg.op === "GET") {
 		// this comes back in from webpage which
 		// actually handled the server's response...
 		if (!client)
 			console.log("Response to a fetch request to a client that is no longer valid?");
 		// echo of fetch event to do actual work....
 		// well... something.
-		//console.log( "Handle standard request....", msg );
+		console.log( "Handle standard request....", msg );
 		const reqId = client.requests.findIndex((client) => client.id === msg.id);
 		if (reqId >= 0) {
 			const req = client.requests[reqId];
@@ -239,7 +244,8 @@ function handleMessage(event) {
 			console.log("Failed to find the requested request" + event.data);
 		}
 	} else if (msg.op === "setUiLoader") {
-		client.uiSocket = msg.socket;
+		const sock = client.protocol.connections.get( msg.socket ); sock.uiLoader = true;
+		//client.uiSocket = msg.socket;
 	} else if (msg.op === "setLoader") {
 		// reply from getItem localStorage.
 		client.localStorage.respond(msg.id);

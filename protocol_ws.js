@@ -22,7 +22,9 @@ function makeProtocol(client) {
 	function makeSocket() {
 		const sock = {
 			ws: null, // wait until we get a config to actually something...
-			id: short_generator()
+			id: short_generator(),
+			url : null,
+			uiLoader : false,
 		};
 		connections.set(sock.id, sock);
 		return sock;
@@ -33,6 +35,7 @@ function makeProtocol(client) {
 		//console.log( "Worker received from main:", msg );
 		if (msg.op === "connect") {
 			const connection = makeSocket()
+			connection.url = new URL( msg.address );
 			_debug && console.log("SETTING PROTOCOL: ", connection.id);
 			protocol_.connection = connection;
 
@@ -70,6 +73,10 @@ function makeProtocol(client) {
 		connection: null,
 		localStorage : null,   // unused; but set in sw.js
 		resourceReply: null,  // set in sw.js
+		getSocket( id ) {
+			return connections.get(id);
+		},
+		get connections() { return connections; },
 		send(sock, msg) {
 			if ("object" === typeof msg) msg = JSOX.stringify(msg);
 			const socket = connections.get(sock);
@@ -99,13 +106,20 @@ function makeProtocol(client) {
 			const msg_ = evt.data;
 			if (msg_[0] === '\0') { 
 				const msg = JSOX.parse(msg_.substr(1)); // kinda hate double-parsing this... 
-				if (msg.op === 'GET') {
+				if (msg.op === 'got') {
 					if (protocol_.resourceReply)
 						protocol_.resourceReply(client, msg);
 					return;
 				}
-			} else
+			} else {
+				const msg = JSOX.parse(msg_); // kinda hate double-parsing this... 
+				if (msg.op === 'got') {
+					if (protocol_.resourceReply)
+						protocol_.resourceReply(client, msg);
+					return;
+				}
 				send({ op: 'a', id: connection.id, msg: msg_ }); // just forward this.
+			}
 		};
 		ws.onclose = function doClose(evt) {
 			// event is a HTTP socket event type message.
