@@ -13,13 +13,18 @@ const pendingUI = [];
 const workerInterface = {
 	connect: connect,
 	uiSocket: null,
-	setUiLoader(protocol) {
-		workerInterface.uiSocket = protocol;
-		if( !l.worker ) {
-			pendingUI.push( {protocol} );
-			console.log( "need to pend setting ui loader remote..." );
-		} else
-			l.worker.postMessage({ op: "setUiLoader", socket: protocol.socket });
+/**
+*  ws is a class WebSocket (probably) from this module
+*/
+	setUiLoader(ws, on) {
+		//workerInterface.uiSocket = ws;
+		if( ws ) {
+			if( !l.worker ) {
+				pendingUI.push( {ws, on} );
+				console.log( "need to pend setting ui loader remote..." );
+			} else
+				l.worker.postMessage({ op: "setUiLoader", socket: ws.socket, on });
+		}
 	},
 	expect(url) {
 		// notify worker that another page will be
@@ -109,8 +114,10 @@ class WebSocket {
 		}
 	}
 	setUiLoader() {
-		this.uiLoader = true;
-		workerInterface.setUiLoader( this );
+		workerInterface.setUiLoader( this, true );
+	}
+	clearUiLoader() {
+		workerInterface.setUiLoader( this, false );
 	}
 	close() {
 		console.log( "CLose socket from client side..." );
@@ -156,8 +163,8 @@ class WebSocket {
 				} );
 				for( let s = 0; s < pendingUI.length; s++ )  {
 					const socket = pendingUI[s];
-					if( socket.socket === this.socket ) {
-						l.worker.postMessage({ op: "setUiLoader", socket: socket.socket });
+					if( socket.ws === this.socket ) {
+						l.worker.postMessage({ op: "setUiLoader", socket: socket.socket, off:socket.off });
 						pendingUI.splice(s,1);
 						s--;
 					}
@@ -183,13 +190,6 @@ class WebSocket {
 		} else {
 			if( this.fw_message )
 				if( this.fw_message( socket, msg ) ) return;
-			if( msg.op === "get" ) {
-				console.log( "No service handler for get... passing back to default handler." );
-				if( workerInterface.uiSocket )
-					workerInterface.uithis.send( msg );
-				//l.worker.postMessage( msg );
-				return;
-			}
 
 			//this.cb( msg );
 			console.log( "Received unknown network event:", msg );

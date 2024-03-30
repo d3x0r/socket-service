@@ -244,7 +244,7 @@ function handleMessage(event) {
 			console.log("Failed to find the requested request" + event.data);
 		}
 	} else if (msg.op === "setUiLoader") {
-		const sock = client.protocol.connections.get( msg.socket ); sock.uiLoader = true;
+		const sock = client.protocol.connections.get( msg.socket ); sock.uiLoader = msg.on;
 		//client.uiSocket = msg.socket;
 	} else if (msg.op === "setLoader") {
 		// reply from getItem localStorage.
