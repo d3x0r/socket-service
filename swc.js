@@ -239,9 +239,9 @@ function handleMessage(event) {
 					}
 				}
 				//console.log( "onopen event?" );
-			} else if( imsg.op === "disconnect" ) {
+			} else if( imsg.op === "close" ) {
 				l.sockets.delete( imsg.id );
-				sock.on("disconnect");
+				sock.on("close", [imsg.code, imsg.reason]);
 			}
 		}
 	} else {

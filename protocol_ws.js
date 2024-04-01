@@ -133,6 +133,8 @@ function makeProtocol(client) {
 			connections.delete(ws.id);
 			console.log( "THis disconnect should be coded!", connection )
 			cb({ op: "disconnect", id: connection.id, code:evt.code, reason:evt.reason }, ws)
+			send({ op: 'c', id: connection.id, code:evt.code, reason:evt.reason }); // just forward this.
+
 			// websocket is closed.
 		};
 		return ws;
