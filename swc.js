@@ -129,10 +129,14 @@ class WebSocket {
 			l.worker.postMessage( addr );
 		} );
 	}
-	on(event,cb ) {
+	on(event,cb,a ) {
 		if( "function" !== typeof cb ) {
-                     	if( event in this.events_ )
+		if( event in this.events_ ) {
+			if( cb instanceof Array )
+				this.events_[event](...cb);
+			else
 				this.events_[event](cb);
+			}
 		} else {
 			this.events_[event] = cb;
 		}
