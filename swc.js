@@ -121,7 +121,7 @@ class WebSocket {
 	}
 	close(code,reason) {
 		console.log( "CLose socket from client side..." );
-		l.worker.postMessage( {op:"close", is:this.socket, code, reason } );
+		l.worker.postMessage( {op:"close", id:this.socket, code, reason } );
 	}
 	newSocket(addr) {
 		return new Promise( (res,rej)=>{
