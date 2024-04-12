@@ -153,9 +153,13 @@ function handleFetch(event) {
 	const client = getClient(event, asClient);
 	const url = new URL( req.url );
 	// not only the client; but the specific socket on the client....
-	const sock = client.protocol.connections.find( (ws)=>{
-		return ( url.origin === ws.url.origin ) && ws.uiLoader;
-	} );
+let found = null;
+	if( client.protocol )
+	 for (const [key, ws] of client.protocol.connections){
+			if( ws.uiLoader && url.origin === ws.url.origin )
+				found = key;
+		}
+	const sock = found;
 
 	event.respondWith(
 		(() => {

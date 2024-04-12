@@ -38,7 +38,7 @@ function makeProtocol(client) {
 			connection.url = new URL( msg.address );
 			_debug && console.log("SETTING PROTOCOL: ", connection.id);
 			protocol_.connection = connection;
-
+			// callback events have to be associated with this e.source... (could pass that I suppose?)
 			connection.ws = protocol.connect(msg.address, msg.protocol,
 				(msg) => {
 					e.source.postMessage({ op: "b", id: connection.id, msg: msg });	
@@ -131,10 +131,7 @@ function makeProtocol(client) {
 				}
 			}
 			connections.delete(ws.id);
-			console.log( "THis disconnect should be coded!", connection )
-			cb({ op: "disconnect", id: connection.id, code:evt.code, reason:evt.reason }, ws)
-			send({ op: 'c', id: connection.id, code:evt.code, reason:evt.reason }); // just forward this.
-
+			cb({ op: "close", id: connection.id, code:evt.code, reason:evt.reason })
 			// websocket is closed.
 		};
 		return ws;
