@@ -119,9 +119,9 @@ class WebSocket {
 	clearUiLoader() {
 		workerInterface.setUiLoader( this, false );
 	}
-	close() {
+	close(code,reason) {
 		console.log( "CLose socket from client side..." );
-		l.worker.postMessage( {op:"close", is:this.socket } );
+		l.worker.postMessage( {op:"close", id:this.socket, code, reason } );
 	}
 	newSocket(addr) {
 		return new Promise( (res,rej)=>{
