@@ -1,3 +1,6 @@
+/**
+* This is the Socket Websocket Server.  It is a hook into a sack.vfs server handler.
+*/
 
 import {sack} from "sack.vfs" ;
 
@@ -11,6 +14,7 @@ export function handleRequest( req, res, serverOpts ) {
 	// redirect this file's source so it can serve root content.
 	//console.log( "socket-service got a turn at:", req.url );
 	if( req.url === '/socket-service-swbundle.js' ) filePath = npm_path+'/node_modules/@d3x0r/socket-service/swbundle.js'
+	else if( req.url === '/socket-service-swbundle.js.gz' ) filePath = npm_path+'/node_modules/@d3x0r/socket-service/swbundle.js.gz'
 	else if( req.url === '/socket-service-client.js' ) filePath = npm_path+'/node_modules/@d3x0r/socket-service/swc.js'
 /*
 	else if( req.url === '/login/webSocketClient.js' ) {
