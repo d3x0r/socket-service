@@ -4346,7 +4346,7 @@ function makeProtocol(client) {
 		connect: openSocket,
 		//login : login,
 		connectTo: openSocket,
-		handleServiceMessage: handleServiceMessage,
+		handleServiceMessage,
 		serviceLocal: null,  // set in sw.js
 		connection: null,
 		localStorage : null,   // unused; but set in sw.js
